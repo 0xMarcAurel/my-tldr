@@ -15,10 +15,10 @@ Devvit.addSettings([
 
 Devvit.addMenuItem({
   label: "Summarize this post",
+  description: "Generate a summary of this post using AI.",
   location: "post",
   forUserType: "moderator",
   onPress: async (event, context) => {
-
     try {
       context.ui.showToast("Generating summary...");
 
@@ -41,8 +41,12 @@ Devvit.addMenuItem({
       const apiKey = rawKey;
 
       const prompt = [
-        `Summarize this Reddit post in a short concise text block.`,
-        `Be brief and factual.\n\n${fullText}`
+        `Summarize this Reddit post.`,
+        `Write 1-2 short paragraphs (2-4 sentences total).`,
+        `Ensure all sentences are complete. Do not cut off mid-sentence.`,
+        `Only use information from the post. Do not add assumptions or external context.`,
+        `End the response with a complete sentence and proper punctuation.`,
+        `Keep the language clear and simple to understand.\n\n${fullText}`
       ].join(' ');
 
       const response = await fetch(
@@ -56,9 +60,12 @@ Devvit.addMenuItem({
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-              maxOutputTokens: 300,
+              maxOutputTokens: 500,
               temperature: 0.4,
-            },
+              thinkingConfig: {
+                thinkingBudget: 0
+              }
+            }
           }),
         }
       );
@@ -88,6 +95,7 @@ Devvit.addMenuItem({
       context.ui.showToast("Summary posted.");
     } catch (error) {
       console.error("Error generating summary:", error);
+
       context.ui.showToast("Failed to generate summary.");
     }
   }
