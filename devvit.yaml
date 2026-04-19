@@ -1,7 +1,9 @@
 name: my-tldr
 version: 0.0.1
 capabilities:
-  - redditAPI # read posts, write comments
-  - http # call the Gemini API
+  - redditAPI
+  - http
 permissions:
   - reddit:read
+allowedDomains:
+  - generativelanguage.googleapis.com
