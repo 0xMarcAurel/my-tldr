@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import "dotenv/config";
 import { Devvit } from "@devvit/public-api";
 
 Devvit.configure({ redditAPI: true, http: true });
@@ -13,6 +13,25 @@ Devvit.addSettings([
   },
 ]);
 
+const botVersion = "v0.0.1.60"; // update with each release
+
+// helper function to fetch gemini's API in case it's unavailable (due to high demand)
+async function fetchWithRetry(url: string, options: RequestInit, retries = 3, delayMs = 1500): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    const response = await fetch(url, options);
+
+    if (response.status !== 503) {
+      return response;
+    }
+
+    if (i < retries - 1) {
+      await new Promise(res => setTimeout(res, delayMs * (i + 1)));
+    }
+  }
+
+  throw new Error("Gemini API is unavailable after multiple retries. Please try again later.");
+}
+
 Devvit.addMenuItem({
   label: "Summarize this post",
   description: "Generate a summary of this post using AI.",
@@ -20,11 +39,18 @@ Devvit.addMenuItem({
   forUserType: "moderator",
   onPress: async (event, context) => {
     try {
+      context.ui.showToast("Generating summary...")
+
       // get post details
       const postId = event.targetId;
       const post = await context.reddit.getPostById(postId);
       const title = post.title;
-      const isLinkPost = !post.body && post.url && !post.url.includes("reddit.com");
+
+      const isLinkPost =
+        !post.body &&
+        post.url &&
+        post.url.startsWith("http") &&
+        !post.url.includes("reddit.com");
 
       // get API key
       const rawKey =
@@ -43,14 +69,35 @@ Devvit.addMenuItem({
         `Only use information from the post. Do not add assumptions or external context.`,
         `End the response with a complete sentence and proper punctuation.`,
         `Keep the language clear and simple to understand.`,
-      ].join(' ');
+      ].join(" ");
 
       // build request body depending on post type
-      const contents = isLinkPost
-        ? [{ parts: [{ text: `${basePrompt}\n\nTitle: ${title}\n\nArticle URL: ${post.url}` }] }]
-        : [{ parts: [{ text: `${basePrompt}\n\nTitle: ${title}\n\n${post.body ?? ''}`.slice(0, 4000) }] }];
+      let contentForSummary: string;
 
-      const tools = isLinkPost ? [{ url_context: {} }] : [];
+      if (isLinkPost) {
+        try {
+          // jina reader will extract clean text from any url
+          const jinaRes = await fetch(`https://r.jina.ai/${post.url}`, {
+            headers: { "Accept": "text/plain" },
+          });
+
+          const articleText = await jinaRes.text();
+
+          if (!articleText) {
+            contentForSummary = `Title: ${title}\n\nNote: Article content could not be retrieved.`;
+          } else {
+            contentForSummary = `Title: ${title}\n\nArticle content:\n${articleText}`.slice(0, 4000);
+          }
+        } catch (err) {
+          console.error("Jina fetch failed:", err);
+
+          contentForSummary = `Title: ${title}\n\nNote: Article content could not be retrieved.`;
+        }
+      } else {
+        contentForSummary = `Title: ${title}\n\n${post.body ?? ""}`.slice(0, 4000);
+      }
+
+      const contents = [{ parts: [{ text: `${basePrompt}\n\n${contentForSummary}` }] }];
 
       const generationConfig = isLinkPost
         ? {
@@ -66,7 +113,7 @@ Devvit.addMenuItem({
         };
 
       // call gemini API
-      const response = await fetch(
+      const response = await fetchWithRetry(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
         {
           method: "POST",
@@ -76,7 +123,6 @@ Devvit.addMenuItem({
           },
           body: JSON.stringify({
             contents,
-            ...(tools.length > 0 && { tools }),
             generationConfig
           }),
         }
@@ -89,38 +135,25 @@ Devvit.addMenuItem({
       }
 
       // check if url retrieval failed
-      const urlStatus = data?.candidates?.[0]?.urlContextMetadata?.urlMetadata?.[0]?.urlRetrievalStatus;
-      const urlFailed = isLinkPost && urlStatus && urlStatus !== "URL_RETRIEVAL_STATUS_SUCCESS";
+      const parts = data?.candidates?.[0]?.content?.parts ?? [];
+      const summary = parts.find((part: { text?: string }) => part.text?.trim())?.text;
 
-      let commentBody: string;
-
-      if (urlFailed) {
-        commentBody = [
-          `**TL;DR:**`,
-          ``,
-          `The article could not be retrieved for summarization. You can read it directly here: ${post.url}`,
-          ``,
-          `---`,
-          `*^(Article content was unavailable for AI summarization.)*`,
-        ].join('\n');
-      } else {
-        const parts = data?.candidates?.[0]?.content?.parts ?? [];
-        const summary = parts.find((p: { text?: string }) => p.text?.trim())?.text;
-
-        if (!summary) {
-          throw new Error("Gemini returned no content. Check API key and quota.");
-        }
-
-        // post the comment
-        commentBody = [
-          `**TL;DR:**`,
-          ``,
-          summary,
-          ``,
-          `---`,
-          `*^(This is an AI-generated summary, always make sure to verify the accuracy of the information provided.)*`
-        ].join('\n');
+      if (!summary) {
+        throw new Error("Gemini returned no content. Check API key and quota.");
       }
+
+      // post the comment
+      const commentBody = [
+        `**TL;DR:**`,
+        ``,
+        summary,
+        ``,
+        `---`,
+        `*This is an AI-generated summary, always make sure to verify the accuracy of the information provided.*`,
+        ``,
+        `*^(my-tldr ${botVersion})*`
+      ].join("\n");
+
 
       const comment = await context.reddit.submitComment({
         id: postId,

@@ -7,3 +7,4 @@ permissions:
   - reddit:read
 allowedDomains:
   - generativelanguage.googleapis.com
+  - r.jina.ai
