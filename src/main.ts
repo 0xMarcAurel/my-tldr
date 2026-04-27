@@ -16,16 +16,32 @@ Devvit.addSettings([
 const botVersion = "v0.0.1.60"; // update with each release
 
 // helper function to fetch gemini's API in case it's unavailable (due to high demand)
-async function fetchWithRetry(url: string, options: RequestInit, retries = 3, delayMs = 1500): Promise<Response> {
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = 3,
+  delayMs = 1500
+): Promise<Response> {
   for (let i = 0; i < retries; i++) {
-    const response = await fetch(url, options);
+    try {
+      const response = await fetch(url, options);
 
-    if (response.status !== 503) {
-      return response;
-    }
+      if (response.status !== 503) {
+        return response;
+      }
 
-    if (i < retries - 1) {
-      await new Promise(res => setTimeout(res, delayMs * (i + 1)));
+      // retry on 503
+      if (i < retries - 1) {
+        await new Promise(res => setTimeout(res, delayMs * (i + 1)));
+      }
+
+    } catch (error) {
+      // retry on network error
+      if (i < retries - 1) {
+        await new Promise(res => setTimeout(res, delayMs * (i + 1)));
+      } else {
+        throw error;
+      }
     }
   }
 
@@ -86,7 +102,12 @@ Devvit.addMenuItem({
           if (!articleText) {
             contentForSummary = `Title: ${title}\n\nNote: Article content could not be retrieved.`;
           } else {
-            contentForSummary = `Title: ${title}\n\nArticle content:\n${articleText}`.slice(0, 4000);
+            const cleanText = articleText
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 4000);
+
+            contentForSummary = `Title: ${title}\n\nArticle content:\n${cleanText}`;
           }
         } catch (err) {
           console.error("Jina fetch failed:", err);
@@ -164,7 +185,9 @@ Devvit.addMenuItem({
 
       context.ui.showToast("Summary posted.");
     } catch (error) {
-      console.error("Error generating summary:", error);
+      console.error("Error generating summary:", {
+        message: error instanceof Error ? error.message : String(error),
+      });
 
       context.ui.showToast("Failed to generate summary.");
     }
