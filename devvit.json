@@ -1,0 +1,15 @@
+{
+  "name": "my-tldr",
+  "blocks": {
+    "entry": "src/main.ts"
+  },
+  "permissions": {
+    "http": {
+      "enable": true,
+      "domains": ["generativelanguage.googleapis.com", "r.jina.ai"]
+    },
+    "reddit": {
+      "enable": true
+    }
+  }
+}

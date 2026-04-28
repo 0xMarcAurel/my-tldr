@@ -13,7 +13,7 @@ Devvit.addSettings([
   },
 ]);
 
-const botVersion = "v0.0.3"; // update with each release
+const botVersion = "v0.0.6"; // update with each release
 
 // helper function to fetch gemini's API in case it's unavailable (due to high demand)
 async function fetchWithRetry(
@@ -62,9 +62,8 @@ Devvit.addMenuItem({
       const post = await context.reddit.getPostById(postId);
       const title = post.title;
 
-      const isLinkPost =
+      const isLinkPost = post.url &&
         !post.body &&
-        post.url &&
         post.url.startsWith("http") &&
         !post.url.includes("reddit.com");
 
