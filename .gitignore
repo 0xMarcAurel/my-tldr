@@ -152,4 +152,7 @@ vite.config.ts.timestamp-*
 *.sln
 *.sw?
 
+# Claude files
+CLAUDE.md
+
 

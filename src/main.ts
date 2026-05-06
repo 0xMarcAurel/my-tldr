@@ -79,7 +79,7 @@ Devvit.addMenuItem({
 
       const basePrompt = [
         `Summarize this post.`,
-        `Write 1-2 short paragraphs (2-4 sentences total).`,
+        `Write 1 short paragraph (4-6 sentences total).`,
         `Ensure all sentences are complete. Do not cut off mid-sentence.`,
         `Only use information from the post. Do not add assumptions or external context.`,
         `End the response with a complete sentence and proper punctuation.`,
