@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { Devvit } from "@devvit/public-api";
+import { fetchExternalContent } from "./externalFetch.js";
 
 Devvit.configure({ redditAPI: true, http: true });
 
@@ -13,7 +14,7 @@ Devvit.addSettings([
   },
 ]);
 
-const botVersion = "v0.0.6"; // update with each release
+const botVersion = "v0.0.7"; // update with each release
 
 // helper function to fetch gemini's API in case it's unavailable (due to high demand)
 async function fetchWithRetry(
@@ -90,27 +91,11 @@ Devvit.addMenuItem({
       let contentForSummary: string;
 
       if (isLinkPost) {
-        try {
-          // jina reader will extract clean text from any url
-          const jinaRes = await fetch(`https://r.jina.ai/${post.url}`, {
-            headers: { "Accept": "text/plain" },
-          });
+        const externalData = await fetchExternalContent(post.url);
 
-          const articleText = await jinaRes.text();
-
-          if (!articleText) {
-            contentForSummary = `Title: ${title}\n\nNote: Article content could not be retrieved.`;
-          } else {
-            const cleanText = articleText
-              .replace(/\s+/g, " ")
-              .trim()
-              .slice(0, 4000);
-
-            contentForSummary = `Title: ${title}\n\nArticle content:\n${cleanText}`;
-          }
-        } catch (err) {
-          console.error("Jina fetch failed:", err);
-
+        if (externalData) {
+          contentForSummary = `Title: ${externalData.title}\n\nContent:\n${externalData.content}`;
+        } else {
           contentForSummary = `Title: ${title}\n\nNote: Article content could not be retrieved.`;
         }
       } else {

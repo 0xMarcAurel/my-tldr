@@ -1,6 +1,6 @@
 // helper function to fetch external URLs via backend proxy
 export async function fetchExternalContent(url: string): Promise<{ title: string; content: string } | null> {
-    const BACKEND_URL = "https://my-tldr-backend.onrender.com"; // Replace with your Render URL
+    const BACKEND_URL = "https://my-tldr.onrender.com";
 
     try {
         const response = await fetch(`${BACKEND_URL}/fetch-and-extract`, {

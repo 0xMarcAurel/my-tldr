@@ -6,7 +6,7 @@
   "permissions": {
     "http": {
       "enable": true,
-      "domains": ["generativelanguage.googleapis.com", "r.jina.ai"]
+      "domains": ["generativelanguage.googleapis.com", "my-tldr.onrender.com"]
     },
     "reddit": {
       "enable": true
