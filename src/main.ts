@@ -169,9 +169,9 @@ Devvit.addMenuItem({
 
       context.ui.showToast("Summary posted.");
     } catch (error) {
-      console.error("Error generating summary:", {
-        message: error instanceof Error ? error.message : String(error),
-      });
+      const message = error instanceof Error ? error.message : String(error)
+
+      console.error(`Error generating summary: ${message}`);
 
       context.ui.showToast("Failed to generate summary.");
     }

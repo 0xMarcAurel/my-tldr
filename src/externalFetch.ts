@@ -26,7 +26,7 @@ export async function fetchExternalContent(url: string): Promise<{ title: string
             content: data.content,
         };
     } catch (error) {
-        console.error("Fetch external content error:", error);
+        console.error(`Fetch external content error: ${error}`);
         return null;
     }
 }

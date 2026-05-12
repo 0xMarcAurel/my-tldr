@@ -36,7 +36,7 @@ app.post("/fetch-and-extract", async (req, res) => {
     // extract title
     const title =
       $("h1").first().text() ||
-      $('meta[property="og:title"]').attr("content") ||
+      $("meta[property='og:title']").attr("content") ||
       $("title").text() ||
       "Untitled";
 
@@ -45,7 +45,7 @@ app.post("/fetch-and-extract", async (req, res) => {
       $("article").text() ||
       $("[data-testid='tweetText']").text() || // for X posts
       $("main").text() ||
-      $('[role="main"]').text() ||
+      $("[role='main']").text() ||
       $("body").text();
 
     // clean up content
@@ -66,7 +66,7 @@ app.post("/fetch-and-extract", async (req, res) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
-    console.error("Fetch error:", message);
+    console.error(`Fetch error: ${message}`);
 
     res.status(400).json({
       success: false,
