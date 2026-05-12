@@ -44,6 +44,10 @@ export async function fetchExternalContent(url: string): Promise<ExternalContent
         }
 
         return { title: data.title, content: data.content };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+
+        throw new Error(`Fetch external content error: ${message}`);
     } finally {
         clearTimeout(timeoutId);
     }
