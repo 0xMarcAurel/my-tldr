@@ -11,13 +11,7 @@ interface BackendResponse {
     error?: string;
 }
 
-export async function fetchExternalContent(url: string): Promise<ExternalContent> {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-    if (!backendUrl) {
-        throw new Error("NEXT_PUBLIC_BACKEND_URL is not configured");
-    }
-
+export async function fetchExternalContent(url: string, backendUrl: string): Promise<ExternalContent> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10_000);
 

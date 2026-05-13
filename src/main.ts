@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { Devvit } from "@devvit/public-api";
 import { fetchExternalContent } from "./externalFetch.js";
 
@@ -12,9 +11,16 @@ Devvit.addSettings([
     isSecret: true,
     scope: "app",
   },
+  {
+    name: "backend-url",
+    label: "Backend URL",
+    type: "string",
+    isSecret: false,
+    scope: "app",
+  },
 ]);
 
-const botVersion = "v0.0.11"; // update with each release
+const botVersion = "v0.0.12"; // update with each release
 
 // helper function to fetch gemini's API in case it's unavailable (due to high demand)
 async function fetchWithRetry(
@@ -91,28 +97,25 @@ Devvit.addMenuItem({
       let contentForSummary: string;
 
       if (isLinkPost) {
-        const externalData = await fetchExternalContent(post.url);
+        const backendUrl = await context.settings.get("backend-url");
 
-        if (externalData) {
-          contentForSummary = `Title: ${externalData.title}\n\nContent:\n${externalData.content}`;
-        } else {
-          contentForSummary = `Title: ${title}\n\nNote: Article content could not be retrieved.`;
+        if (!backendUrl || typeof backendUrl !== "string") {
+          throw new Error("Backend URL is not configured");
         }
+
+        const externalData = await fetchExternalContent(post.url, backendUrl);
+
+        contentForSummary = `Title: ${externalData.title}\n\nContent:\n${externalData.content}`;
       } else {
         contentForSummary = `Title: ${title}\n\n${post.body ?? ""}`.slice(0, 4000);
       }
 
       const contents = [{ parts: [{ text: `${basePrompt}\n\n${contentForSummary}` }] }];
 
-      const generationConfig = isLinkPost
-        ? {
-          maxOutputTokens: 1000,
-          temperature: 0.4,
-        }
-        : {
-          maxOutputTokens: 500,
-          temperature: 0.4,
-        };
+      const generationConfig = {
+        maxOutputTokens: 1000,
+        temperature: 0.4,
+      };
 
       // call gemini API
       const response = await fetchWithRetry(
@@ -174,7 +177,7 @@ Devvit.addMenuItem({
       // provide user feedback based on error type
       let toastMessage = "Failed to generate summary.";
 
-      if (message.includes("NEXT_PUBLIC_BACKEND_URL")) {
+      if (message.includes("Backend URL is not configured")) {
         toastMessage = "Backend not configured. Contact app developer.";
       } else if (message.includes("Gemini API error")) {
         toastMessage = "Gemini API error. Check API key or quota.";
