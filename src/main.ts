@@ -112,9 +112,6 @@ Devvit.addMenuItem({
         : {
           maxOutputTokens: 500,
           temperature: 0.4,
-          thinkingConfig: {
-            thinkingBudget: 0,
-          },
         };
 
       // call gemini API
@@ -169,11 +166,27 @@ Devvit.addMenuItem({
 
       context.ui.showToast("Summary posted.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
+      const message = error instanceof Error ? error.message : String(error);
 
+      // log context for debugging
       console.error(`Error generating summary: ${message}`);
 
-      context.ui.showToast("Failed to generate summary.");
+      // provide user feedback based on error type
+      let toastMessage = "Failed to generate summary.";
+
+      if (message.includes("NEXT_PUBLIC_BACKEND_URL")) {
+        toastMessage = "Backend not configured. Contact app developer.";
+      } else if (message.includes("Gemini API error")) {
+        toastMessage = "Gemini API error. Check API key or quota.";
+      } else if (message.includes("timeout")) {
+        toastMessage = "Request timeout. URL took too long to fetch.";
+      } else if (message.includes("Could not extract content")) {
+        toastMessage = "Could not extract article content from URL.";
+      } else if (message.includes("Invalid Gemini API key")) {
+        toastMessage = "Invalid Gemini API key configured.";
+      }
+
+      context.ui.showToast(toastMessage);
     }
   }
 });
