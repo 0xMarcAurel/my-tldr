@@ -20,7 +20,7 @@ Devvit.addSettings([
   },
 ]);
 
-const botVersion = "v0.0.12"; // update with each release
+const botVersion = "v0.0.13"; // update with each release
 
 // helper function to fetch gemini's API in case it's unavailable (due to high demand)
 async function fetchWithRetry(
